@@ -17,6 +17,8 @@ This file is kept up to date as the work goes on.
 - The idea and its direction: hidden messaging as the use case, pictures rather than text as the
   carrier, and removing the on-chain trace of who talks to whom.
 - Not installing the wallet extension, which led to registering through the SDK instead.
+- Turning it from a converter into a messenger: conversations, invite links, and the Wall as a
+  way to deliver with no direct contact (the "mixer" idea was the human's).
 - Scope, naming, what gets published and when.
 
 ## What the assistant produced

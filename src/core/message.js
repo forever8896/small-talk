@@ -7,7 +7,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { signMessage } from "@qorechain/qoresign";
 import { verifyMessageWithChain } from "@qorechain/qoresign/network";
 import { fetchMlkemPublicKey } from "@qorechain/qoreseal/network";
-import { sealToWire, openWire, wireLength, BUCKETS } from "./wire.js";
+import { sealToWire, openWire, headOpens, wireLength, BUCKETS, HEAD_LENGTH } from "./wire.js";
 import { embed, extract, embeddingRate } from "./stego.js";
 
 const enc = new TextEncoder(), dec = new TextDecoder();
@@ -38,6 +38,7 @@ export async function hide({ rest, chainId, me, to, text, rgba, width, height })
 export async function reveal({ rest, chainId, me, rgba, width, height }) {
   const fits = BUCKETS.filter((b) => embeddingRate(width, height, wireLength(b)) <= 1);
   if (!fits.length) return null;
+  if (!headOpens({ chainId, keys: me.sealKeys, head: extract(rgba, width, height, HEAD_LENGTH) })) return null; // fast path for other people's pictures
   const all = extract(rgba, width, height, wireLength(fits.at(-1))); // shorter reads are prefixes of this one
   for (const bucket of fits) {
     const plain = openWire({ chainId, keys: me.sealKeys, wire: all.subarray(0, wireLength(bucket)) });

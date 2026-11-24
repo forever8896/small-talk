@@ -104,6 +104,13 @@ function bubble(m) {
     save.onclick = () => { save.href = URL.createObjectURL(m.png); setTimeout(() => URL.revokeObjectURL(save.href), 60000); };
     actions.append(save);
     if (navigator.canShare?.({ files: [file] })) { const share = el("button", { textContent: "Share" }); share.onclick = () => navigator.share({ files: [file] }).catch(() => {}); actions.append(share); }
+    const post = el("button", { textContent: m.posted ? "On the Wall" : "Post to the Wall", disabled: !!m.posted });
+    post.onclick = async () => {
+      post.disabled = true; post.textContent = "Posting…";
+      try { await postToWall(m.png); await messages.patch(m.id, { posted: true }); post.textContent = "On the Wall"; }
+      catch (e) { post.disabled = false; post.textContent = "Post to the Wall"; toast(e.message); }
+    };
+    actions.append(post);
     meta.append(actions);
   }
   li.append(meta);
@@ -111,6 +118,7 @@ function bubble(m) {
 }
 async function showThread() {
   const person = current && people.get(current);
+  $("wall").hidden = true; $("wall-open").setAttribute("aria-current", false);
   $("thread-empty").hidden = !!person; $("thread-head").hidden = $("composer").hidden = !person; $("peer-status").hidden = true;
   $("messages").replaceChildren();
   if (!person) return;
@@ -158,19 +166,26 @@ $("composer").onsubmit = async (e) => {
 };
 
 // ---- reading: drop, paste or pick a picture anywhere ----
+/** Looks for a message to you in a decoded PNG and files it. Returns "none", "old", "new" or throws. */
+async function take(png) {
+  const got = await reveal({ rest: REST, chainId: CHAIN_ID, me, ...png });
+  if (!got) return { result: "none" };
+  const { added } = people.add(got.from);
+  const fresh = await messages.put({ id: await messageId(got.from, me.address, got.ts, got.text), owner: me.address, peer: got.from, dir: "in", text: got.text, ts: got.ts, thumb: await thumbnail(png) });
+  renderPeople();
+  return { result: fresh ? "new" : "old", from: got.from, added };
+}
 async function check(file) {
   if (!file) return;
   toast("Looking…", 20000);
   const png = await readPng(file);
   if (!png) return toast("Only PNG files can carry a message. If this arrived as a JPEG, the app that delivered it recompressed it.", 8000);
-  let got;
-  try { got = await reveal({ rest: REST, chainId: CHAIN_ID, me, ...png }); }
+  let r;
+  try { r = await take(png); }
   catch (e) { return toast(`A message opened, but it failed its checks and is not shown: ${e.message}`, 9000); }
-  if (!got) return toast("Nothing in this picture for you. It may be an ordinary picture, or a message for someone else: the two look the same.", 8000);
-  const { added } = people.add(got.from);
-  const fresh = await messages.put({ id: await messageId(got.from, me.address, got.ts, got.text), owner: me.address, peer: got.from, dir: "in", text: got.text, ts: got.ts, thumb: await thumbnail(png) });
-  toast(fresh ? (added ? "A message from someone new." : `A message from ${people.get(got.from).name}.`) : "You already have this one.", 4000);
-  await openThread(got.from);
+  if (r.result === "none") return toast("Nothing in this picture for you. It may be an ordinary picture, or a message for someone else: the two look the same.", 8000);
+  toast(r.result === "old" ? "You already have this one." : r.added ? "A message from someone new." : `A message from ${people.get(r.from).name}.`, 4000);
+  await openThread(r.from);
 }
 $("check-file").onchange = (e) => { check(e.target.files[0]); e.target.value = ""; };
 let depth = 0;
@@ -181,7 +196,60 @@ addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
 addEventListener("drop", (e) => { if (!hasFiles(e)) return; e.preventDefault(); depth = 0; $("veil").hidden = true; check(e.dataTransfer.files[0]); });
 addEventListener("paste", (e) => { const file = [...(e.clipboardData?.files ?? [])].find((f) => f.type.startsWith("image/")); if (file) { e.preventDefault(); check(file); } });
 
+// ---- the Wall ----
+const seenKey = () => `small-talk/wall-seen/${me.address}`, mineKey = () => `small-talk/wall-mine/${me.address}`;
+const readSet = (key) => { try { return new Map(JSON.parse(localStorage.getItem(key)) ?? []); } catch { return new Map(); } };
+const writeSet = (key, map) => localStorage.setItem(key, JSON.stringify([...map].slice(-2000)));
+let wallEntries = [], scanning = false;
+async function postToWall(blob) {
+  const res = await fetch("/wall", { method: "POST", headers: { "content-type": "image/png" }, body: blob });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "The Wall did not accept the picture.");
+  refreshWall();
+  return (await res.json()).id;
+}
+function renderWall() {
+  const mine = readSet(mineKey());
+  $("wall-count").textContent = wallEntries.length ? String(wallEntries.length) : "";
+  if ($("wall").hidden) return;
+  $("wall-grid").replaceChildren(...[...wallEntries].reverse().map((e) => {
+    const li = el("li", { className: mine.has(e.id) ? "mine" : "" }, el("img", { src: `/wall/${e.id}.png`, loading: "lazy", alt: "" }));
+    if (mine.has(e.id)) { const b = el("button", { className: "badge", textContent: "for you" }); b.onclick = () => openThread(mine.get(e.id)); li.append(b); }
+    return li;
+  }));
+}
+/** Fetch the list, then quietly check every picture this identity has not looked at yet. */
+async function refreshWall() {
+  try { wallEntries = await (await fetch("/wall")).json(); } catch { return; }
+  renderWall();
+  if (scanning || !ready) return;
+  scanning = true;
+  try {
+    const seen = readSet(seenKey()), mine = readSet(mineKey());
+    for (const e of wallEntries) {
+      if (seen.has(e.id)) continue;
+      try {
+        const png = await readPng(await (await fetch(`/wall/${e.id}.png`)).blob());
+        const r = png ? await take(png) : { result: "none" };
+        if (r.result !== "none") { mine.set(e.id, r.from); writeSet(mineKey(), mine); if (r.result === "new") toast(`The Wall had a message for you from ${people.get(r.from).name}.`, 6000); if (current === r.from && $("wall").hidden) showThread(); renderWall(); }
+      } catch { /* a picture that fails its checks is treated as not ours */ }
+      seen.set(e.id, 1); writeSet(seenKey(), seen);
+    }
+  } finally { scanning = false; }
+}
+$("wall-open").onclick = () => {
+  current = null; renderPeople();
+  $("thread-empty").hidden = $("thread-head").hidden = $("composer").hidden = $("peer-status").hidden = true; $("messages").replaceChildren();
+  $("wall").hidden = false; $("wall-open").setAttribute("aria-current", true); refreshWall();
+};
+$("wall-file").onchange = async (e) => {
+  const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+  say($("wall-status"), "Posting…");
+  try { await postToWall(toPng(await openPicture(file))); say($("wall-status"), "Posted."); }
+  catch (err) { say($("wall-status"), err.message, true); }
+};
+setInterval(refreshWall, 30000);
+
 // ---- start ----
-loadIdentity(); renderPeople(); refreshYou();
+loadIdentity(); renderPeople(); refreshYou().then(refreshWall);
 if (location.hash.startsWith("#add=")) { addPerson(location.href); history.replaceState(null, "", location.pathname); }
 else if (people.all().length) openThread(people.all()[0].address);

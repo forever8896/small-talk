@@ -17,6 +17,7 @@
 
   <div class="layout">
     <aside>
+      <button id="wall-open" class="wall-link">The Wall <span id="wall-count" class="count"></span></button>
       <ul id="people-list" aria-label="People"></ul>
       <form id="add-form">
         <input id="add-input" placeholder="Invite link or qor1 address" autocomplete="off" spellcheck="false" aria-label="Add a person" />
@@ -32,6 +33,17 @@
         <p><strong>Everyone sees a picture. One person sees the message.</strong></p>
         <p>Add someone with their invite link, then write to them. Got a picture from someone? Drop it here.</p>
       </div>
+      <section id="wall" hidden>
+        <header>
+          <h2>The Wall</h2>
+          <p class="hint">A public pile of pictures. Anyone can post one. This page quietly checks each for a message to you; to everyone else, and to the server that stores them, they are just pictures.</p>
+          <div class="row">
+            <label class="button"><input id="wall-file" type="file" accept="image/*" hidden />Post an ordinary picture</label>
+            <span id="wall-status" class="hint"></span>
+          </div>
+        </header>
+        <ul id="wall-grid"></ul>
+      </section>
       <header id="thread-head" hidden>
         <input id="peer-name" aria-label="Name" maxlength="40" />
         <code id="peer-address"></code>

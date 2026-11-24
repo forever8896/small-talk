@@ -70,3 +70,14 @@ summary { cursor: pointer; color: var(--muted); font-size: 14px; }
   aside { border-right: 0; border-bottom: 1px solid var(--line); max-height: 40vh; }
   #peer-address { display: none; }
 }
+.wall-link { text-align: left; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+.wall-link[aria-current="true"] { border-color: var(--accent); }
+.count { font-weight: 400; font-size: 13px; color: var(--muted); }
+#wall { flex: 1; min-height: 0; overflow-y: auto; padding: 20px; display: grid; gap: 18px; align-content: start; }
+#wall[hidden] { display: none; }
+#wall header { display: grid; gap: 10px; max-width: 640px; }
+#wall-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+#wall-grid li { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: var(--card); border: 1px solid var(--line); }
+#wall-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#wall-grid li.mine { outline: 2px solid var(--accent); outline-offset: 1px; }
+#wall-grid .badge { position: absolute; left: 6px; bottom: 6px; background: var(--accent); color: var(--accent-fg); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 0; cursor: pointer; }

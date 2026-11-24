@@ -59,3 +59,18 @@ export function openWire({ chainId, keys, wire }) {
   try { return unpad(open({ chainId, purpose: PURPOSE, envelope: env, keys })); }
   catch (e) { if (isQoreSealError(e)) return null; throw e; }
 }
+
+/** Bytes needed to tell whether a wire could be for these keys: the ML-KEM ciphertext, salt and wrapped key. */
+export const HEAD_LENGTH = ENCODED_LENGTH + SALT + WRAPPED;
+
+/**
+ * Cheap pre-check on the first HEAD_LENGTH bytes of a wire: does its key entry open with these keys?
+ * Lets a reader discard other people's pictures after about 2 KB instead of the whole payload.
+ */
+export function headOpens({ chainId, keys, head }) {
+  const env = new Uint8Array(HEADER + TAG); // a payload that can never authenticate
+  env.set(PREFIX, 0); env.set(head.subarray(ENCODED_LENGTH, ENCODED_LENGTH + SALT), 10); env[27] = 1;
+  env.set(decodeCiphertext(head.subarray(0, ENCODED_LENGTH)), 44); env.set(head.subarray(ENCODED_LENGTH + SALT, HEAD_LENGTH), 1612);
+  try { open({ chainId, purpose: PURPOSE, envelope: env, keys }); return true; }
+  catch (e) { return isQoreSealError(e, "DECRYPTION_FAILED") && /payload/.test(e.message); } // key entry opened; only the stub payload failed
+}

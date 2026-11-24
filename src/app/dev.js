@@ -7,7 +7,10 @@ import { status, publishKeys } from "../core/chain.js";
 import { hide, reveal } from "../core/message.js";
 
 const CHAIN_ID = "qorechain-diana", REST = "/lcd";
-export const other = identityFromMnemonic(generateMnemonic(wordlist, 256));
+// kept for the life of the tab, so reloads keep the same second identity
+const phrase = sessionStorage.getItem("small-talk/dev-other") ?? generateMnemonic(wordlist, 256);
+sessionStorage.setItem("small-talk/dev-other", phrase);
+export const other = identityFromMnemonic(phrase);
 export const otherStatus = () => status({ rest: REST, me: other });
 export const otherPublish = () => publishKeys({ rest: REST, chainId: CHAIN_ID, me: other });
 export const otherHide = (to, text, picture) => hide({ rest: REST, chainId: CHAIN_ID, me: other, to, text, ...picture });

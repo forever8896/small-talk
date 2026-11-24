@@ -42,6 +42,19 @@ So the key exchange has to hold after Q-Day, and it has to leave no trace of who
 
 Everything runs in the page. The chain is only read for public keys.
 
+## Using it
+
+- **People.** Everyone has an invite link. Add someone with theirs and you get a conversation
+  with them; names and messages are kept in your browser only.
+- **Write.** Type, pick a picture, and the page gives you a PNG to save or share.
+- **Read.** Drop or paste a picture anywhere on the page. If it is for you, it lands in the
+  sender's conversation with the signature checked.
+- **The Wall.** A public pile of pictures that anyone can post to, including ordinary ones.
+  Your page quietly checks each new picture; one that is for you appears in your conversations.
+  The sender never sends you anything directly, so no chat app holds a record linking the two
+  of you. The server stores the pictures and understands nothing about them. A picture that
+  is not yours is ruled out from its first 2 KB in a few milliseconds.
+
 ## Limits
 
 - **Recompression destroys the message.** Send the PNG as a file. Apps that re-encode pictures
@@ -58,6 +71,9 @@ Everything runs in the page. The chain is only read for public keys.
   uniformity depends on the module-LWE assumption.
 - **The sender must have published keys too**, so the chain shows that an address uses this
   kind of key. It does not show who it writes to, when, or whether it ever has.
+- **The Wall's server sees who uploads and who downloads.** It cannot tell which pictures carry
+  messages or for whom, but it sees IP addresses like any web server. Readers download every
+  picture, so that part reveals nothing about which one mattered.
 - **The recovery phrase is stored unencrypted in the browser.** Testnet only.
 - QoreSeal itself is marked by its authors as pending external review.
 
@@ -69,12 +85,14 @@ Needs Node.js 20 or newer.
 npm install
 npm run dev      # http://localhost:5180
 npm test         # core tests; the end-to-end test needs two funded testnet identities in .secrets/
+npm run build && npm start   # production: one small Node server for the page, /lcd and the Wall
 ```
 
 `./dev.sh` and `./run.sh` do the same inside a Docker container that can only see this folder.
 
 The public testnet REST endpoint sends no CORS headers, so the page reaches it through `/lcd`
-on its own origin (see `vite.config.js`). Only public queries and signed transactions pass through.
+on its own origin (see `vite.config.js` and `server.mjs`). Only public queries and signed
+transactions pass through. The Wall (`wall.mjs`) keeps the newest 300 pictures on disk.
 
 ## Credits
 

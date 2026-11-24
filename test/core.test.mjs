@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { generateSealKeys, mlkemEncapsulate } from "@qorechain/qoreseal";
 import { encodeCiphertext, decodeCiphertext } from "../src/core/kemeleon.js";
-import { sealToWire, openWire, wireLength } from "../src/core/wire.js";
+import { sealToWire, openWire, wireLength, headOpens, HEAD_LENGTH } from "../src/core/wire.js";
 import { embed, extract, positions } from "../src/core/stego.js";
 import { hide, reveal } from "../src/core/message.js";
 import { identityFromMnemonic } from "../src/core/identity.js";
@@ -32,6 +32,9 @@ test("wire: opens for the recipient only, and has no constant bytes", () => {
   assert.equal(a.length, wireLength(8192));
   assert.deepEqual(openWire({ chainId: CHAIN_ID, keys: bob, wire: a }), msg);
   assert.equal(openWire({ chainId: CHAIN_ID, keys: eve, wire: a }), null);
+  assert.equal(headOpens({ chainId: CHAIN_ID, keys: bob, head: a.subarray(0, HEAD_LENGTH) }), true);
+  assert.equal(headOpens({ chainId: CHAIN_ID, keys: eve, head: a.subarray(0, HEAD_LENGTH) }), false);
+  assert.equal(headOpens({ chainId: CHAIN_ID, keys: bob, head: crypto.getRandomValues(new Uint8Array(HEAD_LENGTH)) }), false);
   let same = 0; for (let i = 0; i < a.length; i++) same += a[i] === b[i];
   assert.ok(same < a.length / 128, `${same} equal bytes between two wires`); // chance level is 1/256
 });

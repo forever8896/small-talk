@@ -34,6 +34,10 @@ export const messages = {
     if (await done(store.get(message.id))) return false;
     await done(store.put(message)); return true;
   },
+  async patch(id, fields) {
+    const store = (await db()).transaction("messages", "readwrite").objectStore("messages"), m = await done(store.get(id));
+    if (m) await done(store.put({ ...m, ...fields }));
+  },
   async thread(owner, peer) {
     const index = (await db()).transaction("messages").objectStore("messages").index("thread");
     return (await done(index.getAll([owner, peer]))).sort((a, b) => a.ts - b.ts);
