@@ -33,3 +33,13 @@ export async function readPng(file) {
   for (let i = 0, j = 0; i < data.length; i += 3) { rgba[j++] = data[i]; rgba[j++] = data[i + 1]; rgba[j++] = data[i + 2]; rgba[j++] = 255; }
   return { rgba, width, height };
 }
+
+/** A small JPEG data URL of the picture, for showing in a conversation. */
+export async function thumbnail({ rgba, width, height }, side = 480) {
+  const full = new OffscreenCanvas(width, height);
+  full.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(rgba), width, height), 0, 0);
+  const scale = Math.min(1, side / Math.max(width, height)), w = Math.round(width * scale), h = Math.round(height * scale);
+  const small = new OffscreenCanvas(w, h); small.getContext("2d").drawImage(full, 0, 0, w, h);
+  const blob = await small.convertToBlob({ type: "image/jpeg", quality: 0.8 });
+  return new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(blob); });
+}

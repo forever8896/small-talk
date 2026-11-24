@@ -18,7 +18,7 @@ export const MAX_RATE = 0.25; // refuse to change more than a quarter of the pic
 
 /**
  * Seal `text` to `to` (a qor1 address) and hide it in the picture.
- * `me` = { address, classicalKey, pqKey } from identity.js. Returns { rgba, rate }.
+ * `me` = { address, classicalKey, pqKey } from identity.js. Returns { rgba, rate, ts }.
  */
 export async function hide({ rest, chainId, me, to, text, rgba, width, height }) {
   const mlkemPublicKey = await fetchMlkemPublicKey({ rest, address: to }); // the registered key, read from the chain
@@ -27,7 +27,7 @@ export async function hide({ rest, chainId, me, to, text, rgba, width, height })
   const wire = sealToWire({ chainId, mlkemPublicKey, plaintext: enc.encode(JSON.stringify({ v: 1, from: me.address, body, sig })) });
   const rate = embeddingRate(width, height, wire.length);
   if (rate > MAX_RATE) throw new Error(`picture too small: needs at least ${Math.ceil((wire.length * 8) / MAX_RATE / 3)} pixels`);
-  return { rgba: embed(rgba, width, height, wire), rate };
+  return { rgba: embed(rgba, width, height, wire), rate, ts: body.ts };
 }
 
 /**

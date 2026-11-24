@@ -7,60 +7,71 @@
   <link rel="stylesheet" href="/src/app/style.css" />
 </head>
 <body>
-  <header>
-    <h1>Small Talk</h1>
-    <p class="tag">Messages that don't look like messages. Sealed to a QoreChain address, hidden in a picture.</p>
-    <nav role="tablist">
-      <button role="tab" data-tab="hide" aria-selected="true">Hide</button>
-      <button role="tab" data-tab="reveal">Reveal</button>
-      <button role="tab" data-tab="you">You <span id="you-dot" class="dot"></span></button>
-    </nav>
+  <header class="top">
+    <div>
+      <h1>Small Talk</h1>
+      <p class="tag">Messages that don't look like messages.</p>
+    </div>
+    <button id="me-chip" aria-haspopup="dialog"><span id="you-dot" class="dot"></span><span id="me-chip-label">You</span></button>
   </header>
 
-  <main>
-    <section id="hide" class="panel">
-      <label>To <input id="to" placeholder="qor1…" autocomplete="off" spellcheck="false" /></label>
-      <p id="to-status" class="hint"></p>
-      <label>Message <textarea id="text" rows="4" maxlength="2000" placeholder="What you actually want to say"></textarea></label>
-      <label class="drop" id="hide-drop"><input id="hide-file" type="file" accept="image/*" hidden />
-        <span id="hide-drop-label">Choose a picture nobody else has a copy of</span></label>
-      <button id="hide-go" class="primary" disabled>Hide the message</button>
-      <p id="hide-status" class="hint"></p>
-      <div id="hide-result" hidden>
-        <img id="hide-preview" alt="The picture with the message hidden in it" />
-        <p id="hide-facts" class="hint"></p>
-        <a id="hide-download" class="primary button" download="picture.png">Download the picture</a>
-        <p class="hint">Send it as a <strong>file</strong>, not as a photo: apps that recompress pictures destroy the message.</p>
+  <div class="layout">
+    <aside>
+      <ul id="people-list" aria-label="People"></ul>
+      <form id="add-form">
+        <input id="add-input" placeholder="Invite link or qor1 address" autocomplete="off" spellcheck="false" aria-label="Add a person" />
+        <button>Add</button>
+      </form>
+      <p id="add-status" class="hint"></p>
+      <label class="button quiet"><input id="check-file" type="file" accept="image/png" hidden />Check a picture</label>
+      <p class="hint">Or drop or paste one anywhere on this page.</p>
+    </aside>
+
+    <main>
+      <div id="thread-empty" class="empty">
+        <p><strong>Everyone sees a picture. One person sees the message.</strong></p>
+        <p>Add someone with their invite link, then write to them. Got a picture from someone? Drop it here.</p>
       </div>
-    </section>
+      <header id="thread-head" hidden>
+        <input id="peer-name" aria-label="Name" maxlength="40" />
+        <code id="peer-address"></code>
+        <button id="peer-remove" class="quiet" title="Remove this person and the conversation">Remove</button>
+      </header>
+      <p id="peer-status" class="hint" hidden></p>
+      <ol id="messages" aria-live="polite"></ol>
+      <form id="composer" hidden>
+        <textarea id="text" rows="2" maxlength="2000" placeholder="What you actually want to say"></textarea>
+        <div class="row">
+          <label class="button"><input id="pick-file" type="file" accept="image/*" hidden /><span id="pick-label">Picture</span></label>
+          <label class="button phone-only"><input id="snap-file" type="file" accept="image/*" capture="environment" hidden />Take photo</label>
+          <span class="grow"></span>
+          <button id="send" class="primary" disabled>Hide in picture</button>
+        </div>
+        <p id="compose-status" class="hint"></p>
+      </form>
+    </main>
+  </div>
 
-    <section id="reveal" class="panel" hidden>
-      <label class="drop" id="reveal-drop"><input id="reveal-file" type="file" accept="image/png" hidden />
-        <span>Choose a PNG someone sent you</span></label>
-      <p id="reveal-status" class="hint"></p>
-      <article id="reveal-result" hidden>
-        <p id="reveal-text"></p>
-        <footer><span id="reveal-from"></span><span id="reveal-when"></span></footer>
-        <p id="reveal-proof" class="ok"></p>
-      </article>
-    </section>
+  <dialog id="you">
+    <form method="dialog"><button class="quiet close" aria-label="Close">Close</button></form>
+    <h2>You</h2>
+    <p class="warn">Testnet only. Keys are kept in this browser's storage; nothing here is worth protecting real funds with.</p>
+    <label>Your invite link <span class="row"><code id="me-link"></code><button id="me-copy-link">Copy</button></span></label>
+    <label>Your address <span class="row"><code id="me-address"></code><button id="me-copy">Copy</button></span></label>
+    <ul id="me-status" class="checks"></ul>
+    <button id="me-publish" class="primary" hidden>Publish my keys</button>
+    <p id="me-hint" class="hint"></p>
+    <details>
+      <summary>Recovery phrase</summary>
+      <p class="hint">These words are your keys. Anyone who has them can read your messages and sign as you.</p>
+      <code id="me-phrase" class="phrase"></code>
+      <label>Use a different phrase <textarea id="me-import" rows="2" spellcheck="false"></textarea></label>
+      <button id="me-import-go">Switch to this phrase</button>
+    </details>
+  </dialog>
 
-    <section id="you" class="panel" hidden>
-      <p class="warn">Testnet only. Keys are kept in this browser's storage; nothing here is worth protecting real funds with.</p>
-      <label>Your address <span class="row"><code id="me-address"></code><button id="me-copy">Copy</button></span></label>
-      <ul id="me-status" class="checks"></ul>
-      <button id="me-publish" class="primary" hidden>Publish my keys</button>
-      <p id="me-hint" class="hint"></p>
-      <details>
-        <summary>Recovery phrase</summary>
-        <p class="hint">These words are your keys. Anyone who has them can read your messages and sign as you.</p>
-        <code id="me-phrase" class="phrase"></code>
-        <label>Use a different phrase <textarea id="me-import" rows="2" spellcheck="false"></textarea></label>
-        <button id="me-import-go">Switch to this phrase</button>
-      </details>
-    </section>
-  </main>
-  <footer class="site">Encryption and signing happen in this page. The chain only holds public keys.</footer>
+  <div id="veil" hidden>Drop the picture to check it</div>
+  <div id="toast" role="status" hidden></div>
   <script type="module" src="/src/app/main.js"></script>
 </body>
 </html>
