@@ -1,0 +1,32 @@
+{
+  "name": "small-talk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "@cosmjs/amino": "^0.39.0",
+    "@cosmjs/proto-signing": "^0.39.0",
+    "@noble/hashes": "^2.4.0",
+    "@qorechain/pqc": "^0.2.3",
+    "@qorechain/qoreseal": "^0.1.0",
+    "@qorechain/qoresign": "^0.2.0",
+    "@qorechain/sdk": "^0.14.0",
+    "@scure/bip39": "^2.4.0",
+    "cosmjs-types": "^0.11.0",
+    "fast-png": "^8.0.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8"
+  }
+}
